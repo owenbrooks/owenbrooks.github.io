@@ -1,15 +1,3 @@
-[submodule "themes/ananke"]
-	path = themes/ananke
-	url = https://github.com/theNewDynamic/gohugo-theme-ananke.git
-[submodule "themes/paper"]
-	path = themes/paper
-	url = https://github.com/nanxiaobei/hugo-paper
-[submodule "themes/beautifulhugo"]
-	path = themes/beautifulhugo
-	url = https://github.com/halogenica/beautifulhugo.git
-[submodule "themes/whiteplain"]
-	path = themes/whiteplain
-	url = https://github.com/taikii/whiteplain.git
 [submodule "themes/minimal"]
 	path = themes/minimal
 	url = https://github.com/calintat/minimal.git

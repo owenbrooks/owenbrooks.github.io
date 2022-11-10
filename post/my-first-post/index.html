@@ -1,63 +1,17 @@
-<!doctype html><html lang=en-au>
-<head>
-<meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
-<title>My First Post</title>
-<style>html body{font-family:railway,sans-serif;background-color:#fff}:root{--accent:darkturquoise;--border-width:5px}</style>
-<link rel=stylesheet href=https://owenbrooks.github.io/css/main.css>
-<link rel=stylesheet href="https://fonts.googleapis.com/css?family=Railway">
-<link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/solarized-dark.min.css>
-<link rel=stylesheet href=https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css crossorigin=anonymous>
-<link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA==" crossorigin=anonymous>
-<script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js></script>
+<!doctype html><html lang=en-au><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Writing a driver</title><style>html body{font-family:railway,sans-serif;background-color:#fff}:root{--accent:darkturquoise;--border-width:5px}</style><link rel=stylesheet href=https://owenbrooks.github.io/css/main.css><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Railway"><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/solarized-dark.min.css><link rel=stylesheet href=https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css crossorigin=anonymous><link rel=stylesheet href=https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA==" crossorigin=anonymous><script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js></script>
 <script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/rust.min.js></script>
 <script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/python.min.js></script>
 <script src=https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/c.min.js></script>
-<script>hljs.initHighlightingOnLoad()</script>
-<script src=https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js></script>
+<script>hljs.initHighlightingOnLoad()</script><script src=https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js></script>
 <script src=https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js integrity=sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa crossorigin=anonymous></script>
-<script>$(document).on('click',function(){$('.collapse').collapse('hide')})</script>
-<meta name=generator content="Hugo 0.86.1">
-<script type=text/javascript async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-</head>
-<body>
-<nav class="navbar navbar-default navbar-fixed-top">
-<div class=container>
-<div class=navbar-header>
-<a class="navbar-brand visible-xs" href=#>My First Post</a>
+<script>$(document).on("click",function(){$(".collapse").collapse("hide")})</script><meta name=generator content="Hugo 0.105.0"><script type=text/javascript async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script></head><body><nav class="navbar navbar-default navbar-fixed-top"><div class=container><div class=navbar-header><a class="navbar-brand visible-xs" href=#>Writing a driver</a>
 <button class=navbar-toggle data-target=.navbar-collapse data-toggle=collapse>
 <span class=icon-bar></span>
 <span class=icon-bar></span>
-<span class=icon-bar></span>
-</button>
-</div>
-<div class="collapse navbar-collapse">
-<ul class="nav navbar-nav">
-<li><a href=/>Home</a></li>
-<li><a href=/about/>About</a></li>
-<li><a href=/post/>Posts</a></li>
-</ul>
-<ul class="nav navbar-nav navbar-right">
-<li class=navbar-icon><a href=mailto:owen.h.brooks@gmail.com><i class="fas fa-envelope"></i></a></li>
-<li class=navbar-icon><a href=https://github.com/owenbrooks/><i class="fab fa-github"></i></a></li>
-<li class=navbar-icon><a href=https://www.linkedin.com/in/owen-brooks-370290184/><i class="fab fa-linkedin"></i></a></li>
-</ul>
-</div>
-</div>
-</nav>
-<main>
-<div>
-<h2>My First Post</h2>
-<h5>August 1, 2021</h5>
-</div>
-<div align=start class=content><p>Testing post</p>
-<pre><code>fn main() {
+<span class=icon-bar></span></button></div><div class="collapse navbar-collapse"><ul class="nav navbar-nav"><li><a href=/>Home</a></li><li><a href=/about/>About</a></li><li><a href=/post/>Posts</a></li></ul><ul class="nav navbar-nav navbar-right"><li class=navbar-icon><a href=mailto:owen.h.brooks@gmail.com><i class="fas fa-envelope"></i></a></li><li class=navbar-icon><a href=https://github.com/owenbrooks/><i class="fab fa-github"></i></a></li><li class=navbar-icon><a href=https://www.linkedin.com/in/owen-brooks-370290184/><i class="fab fa-linkedin"></i></a></li></ul></div></div></nav><main><div><h2>Writing a driver</h2><h5>August 1, 2021</h5></div><div align=start class=content><p>How can I learn: A) what a driver really is, and B) how to write one?</p><p>Starting with <a href=https://lwn.net/Kernel/LDD3/>https://lwn.net/Kernel/LDD3/</a></p><p>The linux kernel can load or unload pieces of software called <code>modules</code>. Devices drivers typically come in the form of a module.</p><p>Char, block, network</p><p>Char - stream of data
+Block - have a filesystem on them
+Network - network interfaces send and receive data packets</p><p>To get started developing a module, we need to download the source code of the linux kernel:</p><pre tabindex=0><code>git clone https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+</code></pre><p>If we make mistakes in the code, this could crash our computer, so running our module in a virtual machine is a nice idea.</p><p>Download qemu: <code>pacman -S qemu-desktop</code></p><pre tabindex=0><code>fn main() {
 	0
 }
-</code></pre></div>
-</main>
-<footer>
-<p class="copyright text-muted">© All rights reserved. Powered by <a href=https://gohugo.io>Hugo</a> and <a href=https://github.com/calintat/minimal>Minimal</a>.</p>
-</footer>
-</body>
-</html>
+</code></pre></div></main><footer><p class="copyright text-muted">© All rights reserved. Powered by <a href=https://gohugo.io>Hugo</a> and <a href=https://github.com/calintat/minimal>Minimal</a>.</p></footer></body></html>

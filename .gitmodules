@@ -4,3 +4,9 @@
 [submodule "themes/zola-bearblog"]
 	path = themes/zola-bearblog
 	url = https://codeberg.org/alanpearce/zola-bearblog
+[submodule "themes/duckquill"]
+	path = themes/duckquill
+	url = https://codeberg.org/daudix/duckquill
+[submodule "themes/terminimal"]
+	path = themes/terminimal
+	url = https://github.com/pawroman/zola-theme-terminimal.git

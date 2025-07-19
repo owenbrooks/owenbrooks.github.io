@@ -4,7 +4,7 @@ pubDate: 'Jul 19 2025'
 description: 'What is the simplest executable we can make run on MacOS?'
 ---
 
-The Mach-O file format is the binary file format of executables on MacOS and iOS. There exist already [adjective] explanations of the format, but for the most part they are coming from the perspective of parsing existing Mach-O files, rather than creating them from scratch. The aim here is to, starting with just machine code, build up a Mach-O file that a modern MacOS[TODO: footnote - Specifically, this was testing on an M1 Macbook Pro running MacOS Sonoma 14.4] kernel agrees to execute.
+The Mach-O file format is the binary file format of executables on MacOS and iOS. There exist already [adjective TODO] explanations of the format, but for the most part they are coming from the perspective of parsing existing Mach-O files, rather than creating them from scratch. The aim here is to, starting with just machine code, build up a Mach-O file that a modern MacOS (Sonoma 14.4 running on an M1 Macbook Pro) kernel agrees to execute.
 
 ---
 
@@ -17,15 +17,15 @@ _main:
     mov     x16, 1
     svc     0x80
 ```
-- We move 64 into the `x0` register - this means our exit code will be 64
-- We move 1 into the `x16` register - 1 is the identifier for the `AUE_EXIT` [system call TODO]
-- Then we execute the `svc` instruction to tell the processor that we want to do a syscall. `0x80` is a convention? TODO ***
+- We move 64 into the `x0` register. This means our exit code will be 64
+- We move 1 into the `x16` register. This is the identifier for the [`EXIT` system call](https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/bsd/kern/syscalls.master#L46)
+- Then we execute the `svc` instruction to tell the processor that we want to do a syscall. `0x80` is [conventionally passed as the immediate](https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/libsyscall/custom/SYS.h#L248)
 
 To get the corresponding machine code, we could consult the [Arm A-profile A64 Instruction Set Architecture](https://developer.arm.com/documentation/ddi0602/2025-03) and encode the instructions manually, but we'll take a shortcut and get the `as` assembler to do this for us:
 ```
 $ as -o exit_syscall.o exit_syscall.S
 ```
-And `objdump` to print out the contents:
+And use `objdump` to print out the contents:
 ```
 $ objdump ./exit_syscall.o --disassemble
 
@@ -40,6 +40,7 @@ Disassembly of section __TEXT,__text:
 ```
 This means the machine code for our 3-instruction program is `[d2800800, d2800030, d4001001]`.
 Now to figure out how we can put those instructions into our own Mach-O file!
+
 ## Mach-O File Format
 
 We have two primary sources for info on Mach-O files:
@@ -633,7 +634,9 @@ The final file consists of:
   </tr>
 </table>
 
-
-
 This is the simplest Mach-O valid executable that I could construct.
+
+#### Other Resources on Mach-O Files
+
+- 
 

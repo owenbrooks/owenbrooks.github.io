@@ -6,6 +6,7 @@ nodejs v22.16.0
 
 ```
 nix develop
+npm install
 npm run dev
 npm run build
 ```

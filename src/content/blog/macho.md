@@ -22,11 +22,11 @@ _main:
 - Then we execute the `svc` instruction to tell the processor that we want to do a syscall. `0x80` is a convention? TODO ***
 
 To get the corresponding machine code, we could consult the [Arm A-profile A64 Instruction Set Architecture](https://developer.arm.com/documentation/ddi0602/2025-03) and encode the instructions manually, but we'll take a shortcut and get the `as` assembler to do this for us:
-```bash
+```
 $ as -o exit_syscall.o exit_syscall.S
 ```
 And `objdump` to print out the contents:
-```bash
+```
 $ objdump ./exit_syscall.o --disassemble
 
 ./exit_syscall.o:       file format mach-o arm64
@@ -51,11 +51,16 @@ Synthesising some information from the above sources, a Mach-O file consists of:
 - some 'Load Commands' that define the structure of the data in the file and how it is to be loaded into memory
 - data that is referenced by the Load Commands
 
-![[Pasted image 20250527215053.png | 350]]
+<div style="text-align: center;">
+    <img src="/assets/macho-overview.svg" alt="Description" class="centered" />
+</div>
 
 Each Mach-O is divided into a number of named areas called 'segments' that are loaded into memory as contiguous blocks, and data in a segment may be further divided into named 'sections'. For example, the `__TEXT` segment (note the uppercase name) contains the Mach-O header, load commands, and executable code, while the `__text` section (lowercase) within that segment refers to just the executable code. This is why `objdump` told us we were looking at the 'Disassembly of the `__TEXT,__text` section' earlier. We will explain other segments and sections as we come across the need for them.
 
-![[Pasted image 20250527215938.png]]
+<div style="text-align: center;">
+    <img src="/assets/macho-overview-segmented.svg" alt="Description" class="centered" />
+</div>
+
 ### Header
 This is defined as the `mach_header_64` struct in [`loader.h`](https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/EXTERNAL_HEADERS/mach-o/loader.h):
 ```rust
@@ -74,14 +79,14 @@ struct MachHeader64 {
 Our header will look like this, at least to start with:
 ```rust
 let mut header = MachHeader64 {
-	magic: MH_MAGIC_64,              // these bytes tell the OS it is a Mach-O file
-	cputype: CPU_TYPE_ARM64,         // since we are running on an M1 mac
-	cpusubtype: CPU_SUBTYPE_ARM_ALL, // ^ as above
-	filetype: MH_EXECUTE,            // we want a file that the OS can execute
-	ncmds: 0,                        // will be incremented as we go
-	sizeofcmds: 0,                   // will be incremented as we go
-	flags: 0,                        // we don't know what flags to include yet
-	reserved: 0,
+    magic: MH_MAGIC_64,              // these bytes tell the OS it is a Mach-O file
+    cputype: CPU_TYPE_ARM64,         // since we are running on an M1 mac
+    cpusubtype: CPU_SUBTYPE_ARM_ALL, // ^ as above
+    filetype: MH_EXECUTE,            // we want a file that the OS can execute
+    ncmds: 0,                        // will be incremented as we go
+    sizeofcmds: 0,                   // will be incremented as we go
+    flags: 0,                        // we don't know what flags to include yet
+    reserved: 0,
 };
 ```
 We'll also add a counter that tells us the total length of the file:
@@ -130,37 +135,37 @@ let text_section_data: [u32; 3] = [0xd2800800, 0xd2800030, 0xd4001001];
 
 let text_segment_vmaddr = 0x100000000;
 let mut text_segment_lc = SegmentCommand64 {
-	cmd: LC_SEGMENT_64,
-	cmdsize: std::mem::size_of::<SegmentCommand64>() as u32
-		+ std::mem::size_of::<Section64>() as u32,
-	segname: *b"__TEXT\0\0\0\0\0\0\0\0\0\0",
-	vmaddr: text_segment_vmaddr,
-	vmsize: 0x0,   // filled in later
-	fileoff: 0x0,  // __TEXT segment begins at the very start of the file
-	filesize: 0x0, // filled in later
-	maxprot: VM_PROT_READ | VM_PROT_EXECUTE,
-	initprot: VM_PROT_READ | VM_PROT_EXECUTE,
-	nsects: 1,
-	flags: 0x0,
+    cmd: LC_SEGMENT_64,
+    cmdsize: std::mem::size_of::<SegmentCommand64>() as u32
+        + std::mem::size_of::<Section64>() as u32,
+    segname: *b"__TEXT\0\0\0\0\0\0\0\0\0\0",
+    vmaddr: text_segment_vmaddr,
+    vmsize: 0x0,   // filled in later
+    fileoff: 0x0,  // __TEXT segment begins at the very start of the file
+    filesize: 0x0, // filled in later
+    maxprot: VM_PROT_READ | VM_PROT_EXECUTE,
+    initprot: VM_PROT_READ | VM_PROT_EXECUTE,
+    nsects: 1,
+    flags: 0x0,
 };
 text_segment_lc.filesize =
-	text_segment_lc.cmdsize as u64 + std::mem::size_of_val(&text_section_data) as u64;
+    text_segment_lc.cmdsize as u64 + std::mem::size_of_val(&text_section_data) as u64;
 text_segment_lc.vmsize = align(text_segment_lc.filesize, 0x4000);
 bytes_reserved += std::mem::size_of_val(&text_segment_lc);
 
 let mut text_section_header = Section64 {
-	sectname: *b"__text\0\0\0\0\0\0\0\0\0\0",
-	segname: *b"__TEXT\0\0\0\0\0\0\0\0\0\0",
-	addr: 0x0, // filled in later
-	size: std::mem::size_of_val(&text_section_data) as u64,
-	offset: 0x0, // filled in later
-	align: 0x2,
-	reloff: 0x0,
-	nreloc: 0x0,
-	flags: 0x80000400,
-	reserved1: 0x0,
-	reserved2: 0x0,
-	reserved3: 0x0,
+    sectname: *b"__text\0\0\0\0\0\0\0\0\0\0",
+    segname: *b"__TEXT\0\0\0\0\0\0\0\0\0\0",
+    addr: 0x0, // filled in later
+    size: std::mem::size_of_val(&text_section_data) as u64,
+    offset: 0x0, // filled in later
+    align: 0x2,
+    reloff: 0x0,
+    nreloc: 0x0,
+    flags: 0x80000400,
+    reserved1: 0x0,
+    reserved2: 0x0,
+    reserved3: 0x0,
 };
 bytes_reserved += std::mem::size_of_val(&text_section_header);
 text_section_header.offset = bytes_reserved as u32;
@@ -182,7 +187,7 @@ std::fs::set_permissions("return64", executable)?;
 ```
 
 Awesome, it has been a bit of work to get to this stage, but by now we have a Mach-O executable with a header, a `__TEXT` segment, and inside that a `__text` section containing our machine code. `otool` can show us the details and doesn't complain:
-```bash
+```
 $ otool -lhtv return64
 return64:
 Mach header
@@ -220,117 +225,117 @@ attributes (none)
 ```
 
 Let's try to run it!
-```bash
+```
 $ ./return64
 Killed: 9
 ```
 Oh. I guess it wasn't going to be that easy.
 
-## mach_loader.c 
+## Secrets of mach_loader.c 
 To figure out the rest of the requirements we will need to dive into the source code that Apple provides for the XNU kernel, specifically the `parse_machfile()` function in [`mach_loader.c`](https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/bsd/kern/mach_loader.c#L140).
 
 Here are the relevant excerpts:
 
-```C
+```c
 if (header->flags & MH_DYLDLINK) {
-	/* Check properties of dynamic executables */
-	if (!(header->flags & MH_PIE) && pie_required(header->cputype, header->cpusubtype & ~CPU_SUBTYPE_MASK)) {
-		return LOAD_FAILURE;
-	}
-	result->needs_dynlinker = TRUE;
+    /* Check properties of dynamic executables */
+    if (!(header->flags & MH_PIE) && pie_required(header->cputype, header->cpusubtype & ~CPU_SUBTYPE_MASK)) {
+        return LOAD_FAILURE;
+    }
+    result->needs_dynlinker = TRUE;
 } 
 ...
 } else {
 ...
-	return LOAD_FAILURE;
+    return LOAD_FAILURE;
 }
 ```
 This tells us we must set the DYLD_LINK and MH_PIE flags in the file header.
 
-```C
+```c
 case LC_LOAD_DYLINKER:
-	...
-		dlp = (struct dylinker_command *)lcp;
-	...
+    ...
+        dlp = (struct dylinker_command *)lcp;
+    ...
 
 // combined with:
 if (ret == LOAD_SUCCESS) {
-	...
-	/* Make sure if we need dyld, we got it */
-	if (result->needs_dynlinker && !dlp) {
-		ret = LOAD_FAILURE;
-	}
+    ...
+    /* Make sure if we need dyld, we got it */
+    if (result->needs_dynlinker && !dlp) {
+        ret = LOAD_FAILURE;
+    }
 }
 ```
 We need a LOAD_DYLINKER load command.
 
-```C
+```c
 if (ret == LOAD_SUCCESS && scp64->fileoff == 0 && scp64->filesize > 0) {
-	/* Enforce a single segment mapping offset zero, with R+X
-	 * protection. */
-	if (found_header_segment ||
-		((scp64->initprot & (VM_PROT_READ | VM_PROT_EXECUTE)) != (VM_PROT_READ | VM_PROT_EXECUTE))) {
-		ret = LOAD_BADMACHO;
-		break;
-	}
-	found_header_segment = TRUE;
+    /* Enforce a single segment mapping offset zero, with R+X
+     * protection. */
+    if (found_header_segment ||
+        ((scp64->initprot & (VM_PROT_READ | VM_PROT_EXECUTE)) != (VM_PROT_READ | VM_PROT_EXECUTE))) {
+        ret = LOAD_BADMACHO;
+        break;
+    }
+    found_header_segment = TRUE;
 }
 ```
 The first segment we load must have initprot set to READ and EXECUTE.
 
-```C
+```c
 if ((file_offset & PAGE_MASK_64) != 0 ||
-	/* we can't mmap() it if it's not page-aligned in the file */
-	...
-	return LOAD_BADMACHO;
+    /* we can't mmap() it if it's not page-aligned in the file */
+    ...
+    return LOAD_BADMACHO;
 }
 ```
 All segments must be aligned to an offset in the file that is a multiple of the 16kiB page size. This is already the case since the `__TEXT` segment has offset 0, but we will need to take this into account when adding more segments.
 
-```C
+```c
 if (!got_code_signatures && cs_process_global_enforcement()) {
-	ret = LOAD_FAILURE;
+    ret = LOAD_FAILURE;
 }
 // combined with
 case LC_CODE_SIGNATURE:
-	/* CODE SIGNING */
-	...
-		got_code_signatures = TRUE;
-	...
+    /* CODE SIGNING */
+    ...
+        got_code_signatures = TRUE;
+    ...
 ```
 We need a CODE_SIGNATURE load command.
 
-```C
+```c
 if (result->thread_count == 0) {
-	ret = LOAD_FAILURE;
+    ret = LOAD_FAILURE;
 }
 // combined with
 static load_return_t load_main(... )
 {
 ...
-	result->thread_count++;
+    result->thread_count++;
 ...
 ```
 We need LC_MAIN or LC_UNIXTHREAD. We choose LC_MAIN over LC_UNIXTHREAD as it is simpler.
 
-```C
+```c
 if (enforce_hard_pagezero &&
-	/* 64 bit ARM binary must have "hard page zero" of 4GB to cover the lower 32 bit address space */
-	(vm_map_has_hard_pagezero(map, 0x100000000) == FALSE)) {
+    /* 64 bit ARM binary must have "hard page zero" of 4GB to cover the lower 32 bit address space */
+    (vm_map_has_hard_pagezero(map, 0x100000000) == FALSE)) {
 ...
-		return LOAD_BADMACHO;
-	}
+        return LOAD_BADMACHO;
+    }
 }
 ```
 We need a 'PAGEZERO' segment.
 
 ```c
 if (scp->initprot == 0 && scp->maxprot == 0 && scp->vmaddr == 0) {
-	/* PAGEZERO */
-	if (os_add3_overflow(scp->vmaddr, scp->vmsize, slide, &pagezero_end) || pagezero_end > UINT32_MAX) {
-		ret = LOAD_BADMACHO;
-		break;
-	}
+    /* PAGEZERO */
+    if (os_add3_overflow(scp->vmaddr, scp->vmsize, slide, &pagezero_end) || pagezero_end > UINT32_MAX) {
+        ret = LOAD_BADMACHO;
+        break;
+    }
 }
 ```
 The PAGEZERO segment must have `initprot` and `maxprot` set to `VM_PROT_NONE` (0).
@@ -345,17 +350,17 @@ Going through those:
 `__PAGEZERO` is straightforward, it is just another `LC_SEGMENT_64` command:
 ```rust
 let pagezero_seg_lc = SegmentCommand64 {
-	cmd: LC_SEGMENT_64,
-	cmdsize: std::mem::size_of::<SegmentCommand64>() as u32,
-	segname: *b"__PAGEZERO\0\0\0\0\0\0",
-	vmaddr: 0x0,
-	vmsize: 0x100000000,
-	fileoff: 0x0,  // empty so we don't need an offset
-	filesize: 0x0, // empty so we don't need a physical size
-	maxprot: 0x0,  // must be VM_PROT_NONE for PAGEZERO
-	initprot: 0x0, // must be VM_PROT_NONE for PAGEZERO
-	nsects: 0,     // doesn't contain any sections
-	flags: 0x0,
+    cmd: LC_SEGMENT_64,
+    cmdsize: std::mem::size_of::<SegmentCommand64>() as u32,
+    segname: *b"__PAGEZERO\0\0\0\0\0\0",
+    vmaddr: 0x0,
+    vmsize: 0x100000000,
+    fileoff: 0x0,  // empty so we don't need an offset
+    filesize: 0x0, // empty so we don't need a physical size
+    maxprot: 0x0,  // must be VM_PROT_NONE for PAGEZERO
+    initprot: 0x0, // must be VM_PROT_NONE for PAGEZERO
+    nsects: 0,     // doesn't contain any sections
+    flags: 0x0,
 };
 bytes_reserved += std::mem::size_of_val(&pagezero_seg_lc);
 header.ncmds += 1;
@@ -367,10 +372,10 @@ For `LC_MAIN`, we just need to make sure we compute the correct file offset of t
 bytes_reserved += std::mem::size_of::<EntryPointCommand>();
 text_section_header.addr = (bytes_reserved as u64 + text_segment_vmaddr) as u64;
 let mut main_lc = EntryPointCommand {
-	cmd: LC_MAIN,
-	cmdsize: std::mem::size_of::<EntryPointCommand>() as u32,
-	entryoff: 0,  // Updated later
-	stacksize: 0, // if we put zero, the kernel fills it with a default value
+    cmd: LC_MAIN,
+    cmdsize: std::mem::size_of::<EntryPointCommand>() as u32,
+    entryoff: 0,  // Updated later
+    stacksize: 0, // if we put zero, the kernel fills it with a default value
 };
 header.ncmds += 1;
 header.sizeofcmds += main_lc.cmdsize;
@@ -385,17 +390,17 @@ Add `LC_LOAD_DYLINKER`:
 ```rust
 let dylinker_name = "/usr/lib/dyld".to_string();
 let padded_cmd_len = align(
-	std::mem::size_of::<DylinkerCommand>() as u64 + dylinker_name.len() as u64,
-	8,
+    std::mem::size_of::<DylinkerCommand>() as u64 + dylinker_name.len() as u64,
+    8,
 ); // cmdsize must be a multiple of 8, so we add padding
 let padded_name_len = padded_cmd_len as usize - std::mem::size_of::<DylinkerCommand>();
 let mut padded_dylinker_name = vec![0; padded_name_len];
 padded_dylinker_name[..dylinker_name.len()].copy_from_slice(&dylinker_name.as_bytes());
 
 let dylinker_lc = DylinkerCommand {
-	cmd: LC_LOAD_DYLINKER,
-	cmdsize: (std::mem::size_of::<DylinkerCommand>() + padded_dylinker_name.len()) as u32,
-	name: std::mem::size_of::<DylinkerCommand>() as u32,
+    cmd: LC_LOAD_DYLINKER,
+    cmdsize: (std::mem::size_of::<DylinkerCommand>() + padded_dylinker_name.len()) as u32,
+    name: std::mem::size_of::<DylinkerCommand>() as u32,
 };
 bytes_reserved += dylinker_lc.cmdsize as usize;
 header.ncmds += 1;
@@ -408,17 +413,17 @@ The code signature is another story. All binaries are required to be signed befo
 First we create the `__LINKEDIT` segment:
 ```rust
 let mut linkedit_seg_lc = SegmentCommand64 {
-	cmd: LC_SEGMENT_64,
-	cmdsize: std::mem::size_of::<SegmentCommand64>() as u32,
-	segname: *b"__LINKEDIT\0\0\0\0\0\0",
-	vmaddr: text_segment_lc.vmaddr + text_segment_lc.vmsize,
-	vmsize: 0x4000,
-	fileoff: 0,  // Updated later
-	filesize: 0, // Updated later
-	maxprot: 0x0,
-	initprot: 0x0,
-	nsects: 0,
-	flags: 0,
+    cmd: LC_SEGMENT_64,
+    cmdsize: std::mem::size_of::<SegmentCommand64>() as u32,
+    segname: *b"__LINKEDIT\0\0\0\0\0\0",
+    vmaddr: text_segment_lc.vmaddr + text_segment_lc.vmsize,
+    vmsize: 0x4000,
+    fileoff: 0,  // Updated later
+    filesize: 0, // Updated later
+    maxprot: 0x0,
+    initprot: 0x0,
+    nsects: 0,
+    flags: 0,
 };
 bytes_reserved += linkedit_seg_lc.cmdsize as usize;
 header.ncmds += 1;
@@ -428,10 +433,10 @@ header.sizeofcmds += linkedit_seg_lc.cmdsize;
 Then we create a load command for the code signature:
 ```rust
 let mut codesig_lc = LinkeditDataCommand {
-	cmd: LC_CODE_SIGNATURE,
-	cmdsize: std::mem::size_of::<LinkeditDataCommand>() as u32,
-	dataoff: 0,  // Updated later
-	datasize: 0, // Updated later
+    cmd: LC_CODE_SIGNATURE,
+    cmdsize: std::mem::size_of::<LinkeditDataCommand>() as u32,
+    dataoff: 0,  // Updated later
+    datasize: 0, // Updated later
 };
 header.ncmds += 1;
 header.sizeofcmds += codesig_lc.cmdsize;
@@ -449,15 +454,15 @@ text_section_header.addr = (text_section_header.offset as u64 + text_segment_vma
 To ensure that the start of the `__LINKEDIT` segment is page-aligned, we must add padding to the end of the `__TEXT` segment:
 ```rust
 let text_sec_end = align(
-	text_section_header.offset as u64 + text_section_data.len() as u64,
-	0x4000,
+    text_section_header.offset as u64 + text_section_data.len() as u64,
+    0x4000,
 );
 let text_seg_padding_len =
-	text_sec_end - text_section_header.offset as u64 - size_of_val(&text_section_data) as u64;
+    text_sec_end - text_section_header.offset as u64 - size_of_val(&text_section_data) as u64;
 bytes_reserved += text_seg_padding_len as usize;
 text_segment_lc.filesize = bytes_reserved as u64;
 if text_segment_lc.filesize % 0x4000 != 0 {
-	text_segment_lc.vmsize = align(text_segment_lc.filesize, 0x4000);
+    text_segment_lc.vmsize = align(text_segment_lc.filesize, 0x4000);
 }
 ```
 
@@ -508,7 +513,7 @@ signer.write_signed_binary(&settings, &mut output)?;
 ```
 
 Running the resulting binary does not quite work:
-```bash
+```
 $ ./return64
 Segmentation fault: 11
 
@@ -531,38 +536,38 @@ Target 0: (return64) stopped.
 We seem to be getting a null pointer dereference inside DYLD, the dynamic loader. I couldn't track down any documentation explicitly stating this, but experimentation confirms that DYLD requires DYSYMTAB and SYMTAB load commands to be present. Luckily, we can create empty tables, by adding these load commands:
 ```rust
 let dysymtab_lc = DysymtabCommand {
-	cmd: LC_DYSYMTAB,
-	cmdsize: std::mem::size_of::<DysymtabCommand>() as u32,
-	ilocalsym: 0,
-	nlocalsym: 0,
-	iextdefsym: 0,
-	nextdefsym: 0,
-	iundefsym: 0,
-	nundefsym: 0,
-	tocoff: 0,
-	ntoc: 0,
-	modtaboff: 0,
-	nmodtab: 0,
-	extrefsymoff: 0,
-	nextrefsyms: 0,
-	indirectsymoff: 0,
-	nindirectsyms: 0,
-	extreloff: 0,
-	nextrel: 0,
-	locreloff: 0,
-	nlocrel: 0,
+    cmd: LC_DYSYMTAB,
+    cmdsize: std::mem::size_of::<DysymtabCommand>() as u32,
+    ilocalsym: 0,
+    nlocalsym: 0,
+    iextdefsym: 0,
+    nextdefsym: 0,
+    iundefsym: 0,
+    nundefsym: 0,
+    tocoff: 0,
+    ntoc: 0,
+    modtaboff: 0,
+    nmodtab: 0,
+    extrefsymoff: 0,
+    nextrefsyms: 0,
+    indirectsymoff: 0,
+    nindirectsyms: 0,
+    extreloff: 0,
+    nextrel: 0,
+    locreloff: 0,
+    nlocrel: 0,
 };
 header.ncmds += 1;
 header.sizeofcmds += dysymtab_lc.cmdsize;
 bytes_reserved += dysymtab_lc.cmdsize as usize;
 
 let symtab_lc = SymtabCommand {
-	cmd: LC_SYMTAB,
-	cmdsize: std::mem::size_of::<SymtabCommand>() as u32,
-	symoff: 0,
-	nsyms: 0,
-	stroff: 0,
-	strsize: 0,
+    cmd: LC_SYMTAB,
+    cmdsize: std::mem::size_of::<SymtabCommand>() as u32,
+    symoff: 0,
+    nsyms: 0,
+    stroff: 0,
+    strsize: 0,
 };
 header.ncmds += 1;
 header.sizeofcmds += symtab_lc.cmdsize;
@@ -581,13 +586,54 @@ output.write_all(bytes_of(&text_section_data))?;
 ```
 ## At last, a working executable
 We can run the program and print its return code:
-```bash
+```
 $ ./return64
 $ echo $?
 64
 ```
 The final file consists of:
 
-![[Pasted image 20250705230821.png]]
-This is the simplest Mach-O valid executable that I could construct
+<table>
+  <tr>
+    <td rowspan="10" style="background-color: #ff7340; vertical-align: middle; text-align: center; font-weight: bold;">__TEXT segment</td>
+    <td colspan="3" style="background-color: #ffb276;">file header</td>
+  </tr>
+  <tr>
+    <td rowspan="8" style="background-color: #ffb276;vertical-align: middle;">load commands</td>
+    <td style="background-color: #ffe2cb;">LC_SEGMENT_64 (__TEXT)</td>
+    <td>Section Header (__text)</td>
+  </tr>
+  <tr>
+    <td>LC_SEGMENT_64 (__PAGEZERO)</td>
+  </tr>
+  <tr>
+    <td>LC_MAIN</td>
+  </tr>
+  <tr>
+    <td>LC_LOAD_DYLINKER</td>
+  </tr>
+  <tr>
+    <td>LC_SEGMENT_64 (__LINKEDIT)</td>
+  </tr>
+  <tr>
+    <td>LC_CODE_SIGNATURE</td>
+  </tr>
+  <tr>
+    <td>LC_DYSYMTAB</td>
+  </tr>
+  <tr>
+    <td>LC_SYMTAB</td>
+  </tr>
+  <tr>
+    <td colspan="3" style="background-color: #ffb276;">__text section</td>
+  </tr>
+  <tr>
+    <td style="background-color: #ff7340; text-align: center; font-weight: bold;">__LINKEDIT segment</td>
+    <td colspan="3" style="background-color: #ffb276;">code signature</td>
+  </tr>
+</table>
+
+
+
+This is the simplest Mach-O valid executable that I could construct.
 

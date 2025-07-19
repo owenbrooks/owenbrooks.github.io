@@ -40,8 +40,8 @@ body {
 	word-wrap: break-word;
 	overflow-wrap: break-word;
 	color: rgb(var(--gray-dark));
-	font-size: 20px;
-	line-height: 1.7;
+	font-size: 1rem;
+	line-height: 1.5;
 }
 main {
 	width: 720px;
@@ -55,24 +55,24 @@ h3,
 h4,
 h5,
 h6 {
-	margin: 0 0 0.5rem 0;
+	margin: 2rem 0 0.5rem 0;
 	color: rgb(var(--black));
 	line-height: 1.2;
 }
 h1 {
-	font-size: 3.052em;
+	font-size: 2.25rem;
 }
 h2 {
-	font-size: 2.441em;
+	font-size: 1.875rem;
 }
 h3 {
-	font-size: 1.953em;
+	font-size: 1.5rem;
 }
 h4 {
-	font-size: 1.563em;
+	font-size: 1.25rem;
 }
 h5 {
-	font-size: 1.25em;
+	font-size: 1.125rem;
 }
 strong,
 b {
@@ -88,7 +88,7 @@ p {
 	margin-bottom: 1em;
 }
 .prose p {
-	margin-bottom: 2em;
+	/* margin-bottom: 2em; */
 }
 textarea {
 	width: 100%;
@@ -101,6 +101,8 @@ table {
 	width: 100%;
 }
 img {
+	margin: 0 auto;
+	text-align: center;
 	max-width: 100%;
 	height: auto;
 	border-radius: 8px;
@@ -134,6 +136,10 @@ hr {
 	main {
 		padding: 1em;
 	}
+}
+
+td {
+	padding-inline: 0.5rem;
 }
 
 .sr-only {

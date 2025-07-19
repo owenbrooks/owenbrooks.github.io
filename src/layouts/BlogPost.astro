@@ -34,7 +34,7 @@ const { title, description, pubDate, updatedDate } = Astro.props;
 				line-height: 1;
 			}
 			.title h1 {
-				margin: 0 0 0.5em 0;
+				margin: 0 0 0em 0;
 			}
 			.date {
 				margin-bottom: 0.5em;
@@ -52,6 +52,7 @@ const { title, description, pubDate, updatedDate } = Astro.props;
 			<article>
 				<div class="prose">
 					<div class="title">
+						<h1>{title}</h1>
 						<div class="date">
 							<FormattedDate date={pubDate} />
 							{
@@ -62,7 +63,6 @@ const { title, description, pubDate, updatedDate } = Astro.props;
 								)
 							}
 						</div>
-						<h1>{title}</h1>
 						<hr />
 					</div>
 					<slot />

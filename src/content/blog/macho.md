@@ -1,10 +1,12 @@
 ---
 title: 'Constructing a Valid Mach-O Executable'
-pubDate: 'Jul 19 2025'
+pubDate: 'Jul 23 2025'
 description: 'What is the simplest executable we can make run on MacOS?'
 ---
 
-The Mach-O file format is the binary file format of executables on MacOS and iOS. There exist already [adjective TODO] explanations of the format, but for the most part they are coming from the perspective of parsing existing Mach-O files, rather than creating them from scratch. The aim here is to, starting with just machine code, build up a Mach-O file that a modern MacOS (Sonoma 14.4 running on an M1 Macbook Pro) kernel agrees to execute.
+The Mach-O file format is the binary file format of executables on MacOS and iOS. The aim of this post is not just to explain the general structure of a Mach-O file, but also to detail which specific components are required to be present in the file for a modern[^1] MacOS kernel to agree to load and execute it. We’ll write some Rust code to generate the bytes that make up a Mach-O file, building up from machine code until we have an executable file.
+
+[^1]: MacOS Sonoma 14.4 running on an M1 MacBook Pro
 
 ---
 
@@ -17,9 +19,9 @@ _main:
     mov     x16, 1
     svc     0x80
 ```
-- We move 64 into the `x0` register. This means our exit code will be 64
-- We move 1 into the `x16` register. This is the identifier for the [`EXIT` system call](https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/bsd/kern/syscalls.master#L46)
-- Then we execute the `svc` instruction to tell the processor that we want to do a syscall. `0x80` is [conventionally passed as the immediate](https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/libsyscall/custom/SYS.h#L248)
+- We move 64 into the `x0` register. This means our exit code will be 64.
+- We move 1 into the `x16` register. This is the identifier for the [`EXIT` system call](https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/bsd/kern/syscalls.master#L46).
+- Then we execute the `svc` instruction to tell the processor that we want to do a syscall. `0x80` is [conventionally passed as the immediate](https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/libsyscall/custom/SYS.h#L248).
 
 To get the corresponding machine code, we could consult the [Arm A-profile A64 Instruction Set Architecture](https://developer.arm.com/documentation/ddi0602/2025-03) and encode the instructions manually, but we'll take a shortcut and get the `as` assembler to do this for us:
 ```
@@ -634,9 +636,52 @@ The final file consists of:
   </tr>
 </table>
 
-This is the simplest Mach-O valid executable that I could construct.
+This is the simplest valid Mach-O executable that I could construct.
 
 #### Other Resources on Mach-O Files
 
-- 
+##### Mach-O General
+
+- https://alexdremov.me/mystery-of-mach-o-object-file-builders/
+- https://web.archive.org/web/20140904004108/https://developer.apple.com/library/mac/documentation/developertools/conceptual/MachORuntime/Reference/reference.html
+- https://www.reinterpretcast.com/hello-world-mach-o
+- https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/MachOTopics/0-Introduction/introduction.html - Unforunately a bit old and therefore x86_64-centric
+- https://developer.apple.com/library/archive/documentation/Performance/Conceptual/CodeFootprint/Articles/MachOOverview.html
+- https://lief.re/doc/latest/tutorials/11_macho_modification.html
+- https://www.objc.io/issues/6-build-tools/mach-o-executables/
+- https://www.symbolcrash.com/2019/02/25/so-you-want-to-be-a-mach-o-man/
+- https://lowlevelbits.org/parsing-mach-o-files/
+- https://github.com/opensource-apple/dyld/blob/master/src/ImageLoaderMachO.cpp
+- https://blog.xpnsec.com/building-a-mach-o-memory-loader-part-1/
+- Tried this machodump tool https://github.com/RedMapleTech/machodump
+
+##### Similar attempts to create valid Mach-O files
+- https://stackoverflow.com/questions/68977603/handmade-macos-executable?rq=3
+- https://stackoverflow.com/questions/39863112/what-is-required-for-a-mach-o-executable-to-load
+- https://stackoverflow.com/questions/74659322/why-is-hello-world-in-assembly-for-arm-mac-invalid
+- https://codegolf.stackexchange.com/questions/102471/smallest-possible-runnable-mach-o-executable
+- https://stackoverflow.com/questions/71723764/why-does-macos-kill-static-executables-created-by-clang
+- https://seriot.ch/projects/hello_macho.html
+
+##### Mach-O Codesigning
+- https://knight.sc/reverse%20engineering/2019/02/20/syspolicyd-internals.html
+- https://hexiosec.com/blog/macho-files/
+- https://gregoryszorc.com/docs/apple-codesign/0.17.0/apple_codesign_gatekeeper.html
+- https://github.com/Homebrew/brew/issues/9082
+- https://github.com/nodejs/node/issues/40827
+
+##### Assembly and syscalls
+- https://github.com/jdshaffer/Apple-Silicon-ASM-Examples
+- https://www.reddit.com/r/Assembly_language/comments/1ijt505/executables_smaller_than_33kb_possible_on_macos/
+- https://stackoverflow.com/a/56993314 - arm64 syscalls
+- https://github.com/below/HelloSilicon/blob/main/Chapter%2001/HelloWorld.s
+- https://stackoverflow.com/questions/69974380/how-to-compile-arm-assembly-on-an-m1-macbook
+- https://www.tiraniddo.dev/2010/06/quest-part-2.html?m=1
+
+##### Mach-O Builder Programs / Libraries
+- https://llvm.org/doxygen/MachOWriter_8cpp_source.html#l00660
+- https://github.com/stek29/minmacho
+- https://gist.github.com/mszoek/2916926a57011bc369e0431561f3d5f7 - ravynOS macho loading
+- https://github.com/bluewhalesystems/sold/blob/59577929295b33e80da9e901f09543b4c4446c11/macho/output-chunks.cc
+- https://github.com/Binject/debug/blob/master/macho/write.go
 

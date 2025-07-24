@@ -10,7 +10,7 @@ The Mach-O file format is the binary file format of executables on MacOS and iOS
 
 ---
 
-First we need that machine code. We're going to make the smallest program that will have some sort of side effect to tell us whether it ran. Let's make a program that does nothing but return an exit code. Here it is in ARM64 assembly:
+First, we need that machine code. We're going to make the smallest program that will have some sort of side effect to tell us whether it ran. Let's make a program that does nothing but return an exit code. Here it is in ARM64 assembly:
 ```asm
 .global _main
 
@@ -54,15 +54,36 @@ Synthesising some information from the above sources, a Mach-O file consists of:
 - some 'Load Commands' that define the structure of the data in the file and how it is to be loaded into memory
 - data that is referenced by the Load Commands
 
-<div style="text-align: center;">
-    <img src="/assets/macho-overview.svg" alt="Description" class="centered" />
-</div>
+<table class="macho-table" style="margin-inline: auto; width: 25rem;">
+  <tr>
+    <td style="background-color: #ffb276;">file header</td>
+  </tr>
+  <tr>
+    <td style="background-color: #ffb276;vertical-align: middle;">load commands</td>
+  </tr>
+  <tr>
+    <td style="background-color: #ffb276;">data</td>
+  </tr>
+</table>
 
 Each Mach-O is divided into a number of named areas called 'segments' that are loaded into memory as contiguous blocks, and data in a segment may be further divided into named 'sections'. For example, the `__TEXT` segment (note the uppercase name) contains the Mach-O header, load commands, and executable code, while the `__text` section (lowercase) within that segment refers to just the executable code. This is why `objdump` told us we were looking at the 'Disassembly of the `__TEXT,__text` section' earlier. We will explain other segments and sections as we come across the need for them.
 
-<div style="text-align: center;">
-    <img src="/assets/macho-overview-segmented.svg" alt="Description" class="centered" />
-</div>
+<table class="macho-table">
+  <tr>
+    <td rowspan="3" style="background-color: #ff7340; vertical-align: middle; text-align: center;">__TEXT segment</td>
+    <td style="background-color: #ffb276;">file header</td>
+  </tr>
+  <tr>
+    <td style="background-color: #ffb276;vertical-align: middle;">load commands</td>
+  </tr>
+  <tr>
+    <td style="background-color: #ffb276;">__text section data</td>
+  </tr>
+  <tr>
+    <td style="background-color: #ff7340; text-align: center;">__LINKEDIT segment</td>
+    <td style="background-color: #ffb276;">code signature data</td>
+  </tr>
+</table>
 
 ### Header
 This is defined as the `mach_header_64` struct in [`loader.h`](https://github.com/apple-oss-distributions/xnu/blob/8d741a5de7ff4191bf97d57b9f54c2f6d4a15585/EXTERNAL_HEADERS/mach-o/loader.h):
@@ -596,42 +617,42 @@ $ echo $?
 ```
 The final file consists of:
 
-<table>
+<table class="macho-table">
   <tr>
-    <td rowspan="10" style="background-color: #ff7340; vertical-align: middle; text-align: center; font-weight: bold;">__TEXT segment</td>
+    <td rowspan="10" style="background-color: #ff7340; vertical-align: middle; text-align: center;">__TEXT segment</td>
     <td colspan="3" style="background-color: #ffb276;">file header</td>
   </tr>
   <tr>
     <td rowspan="8" style="background-color: #ffb276;vertical-align: middle;">load commands</td>
-    <td style="background-color: #ffe2cb;">LC_SEGMENT_64 (__TEXT)</td>
-    <td>Section Header (__text)</td>
+    <td>LC_SEGMENT_64 (__TEXT)</td>
+    <td style="background-color: white;">Section Header (__text)</td>
   </tr>
   <tr>
-    <td>LC_SEGMENT_64 (__PAGEZERO)</td>
+    <td colspan="2">LC_SEGMENT_64 (__PAGEZERO)</td>
   </tr>
   <tr>
-    <td>LC_MAIN</td>
+    <td colspan="2">LC_MAIN</td>
   </tr>
   <tr>
-    <td>LC_LOAD_DYLINKER</td>
+    <td colspan="2">LC_LOAD_DYLINKER</td>
   </tr>
   <tr>
-    <td>LC_SEGMENT_64 (__LINKEDIT)</td>
+    <td colspan="2">LC_SEGMENT_64 (__LINKEDIT)</td>
   </tr>
   <tr>
-    <td>LC_CODE_SIGNATURE</td>
+    <td colspan="2">LC_CODE_SIGNATURE</td>
   </tr>
   <tr>
-    <td>LC_DYSYMTAB</td>
+    <td colspan="2">LC_DYSYMTAB</td>
   </tr>
   <tr>
-    <td>LC_SYMTAB</td>
+    <td colspan="2">LC_SYMTAB</td>
   </tr>
   <tr>
     <td colspan="3" style="background-color: #ffb276;">__text section</td>
   </tr>
   <tr>
-    <td style="background-color: #ff7340; text-align: center; font-weight: bold;">__LINKEDIT segment</td>
+    <td style="background-color: #ff7340; text-align: center;">__LINKEDIT segment</td>
     <td colspan="3" style="background-color: #ffb276;">code signature</td>
   </tr>
 </table>

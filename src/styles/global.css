@@ -4,6 +4,16 @@
   License MIT: https://github.com/HermanMartinus/bearblog/blob/master/LICENSE.md
  */
 
+@import "tailwindcss";
+
+@layer base {
+  ul, ol {
+    list-style: revert;
+    padding-left: 40px;
+    margin-bottom: 1rem;
+  }
+}
+
 :root {
 	--accent: #2337ff;
 	--accent-dark: #000d8a;
@@ -16,22 +26,8 @@
 		0 2px 6px rgba(var(--gray), 25%), 0 8px 24px rgba(var(--gray), 33%),
 		0 16px 32px rgba(var(--gray), 33%);
 }
-@font-face {
-	font-family: 'Atkinson';
-	src: url('/fonts/atkinson-regular.woff') format('woff');
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-@font-face {
-	font-family: 'Atkinson';
-	src: url('/fonts/atkinson-bold.woff') format('woff');
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-}
 body {
-	font-family: 'Atkinson', sans-serif;
+	font-family: sans-serif;
 	margin: 0;
 	padding: 0;
 	text-align: left;
@@ -40,7 +36,6 @@ body {
 	word-wrap: break-word;
 	overflow-wrap: break-word;
 	color: rgb(var(--gray-dark));
-	font-size: 1rem;
 	line-height: 1.5;
 }
 main {
@@ -85,7 +80,10 @@ a:hover {
 	color: var(--accent);
 }
 p {
-	margin-bottom: 1em;
+	/* margin-block: 1em; */
+}
+.astro-code {
+	margin-block: 1em;
 }
 .prose p {
 	/* margin-bottom: 2em; */
@@ -101,7 +99,7 @@ table {
 	width: 100%;
 }
 img {
-	margin: 0 auto;
+	margin: 1rem auto;
 	text-align: center;
 	max-width: 100%;
 	height: auto;

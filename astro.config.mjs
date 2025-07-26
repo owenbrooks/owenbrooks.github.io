@@ -11,11 +11,9 @@ export default defineConfig({
   integrations: [mdx(), sitemap()],
 
   markdown: {
-      shikiConfig: {
-          // theme: 'gruvbox-dark-medium',
-          // theme: 'laserwave',
-          theme: 'one-dark-pro',
-      },
+    shikiConfig: {
+      theme: 'one-dark-pro',
+    },
   },
 
   vite: {

@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://owenbrooks.github.io',
+  site: 'https://owenbrooks.org',
   integrations: [mdx(), sitemap()],
 
   markdown: {

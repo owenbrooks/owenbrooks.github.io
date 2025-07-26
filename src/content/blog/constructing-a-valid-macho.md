@@ -4,7 +4,7 @@ pubDate: 'Jul 23 2025'
 description: 'What is the simplest executable we can make run on MacOS?'
 ---
 
-The Mach-O file format is the binary file format of executables on MacOS and iOS. The aim of this post is not just to explain the general structure of a Mach-O file, but also to detail which specific components are required to be present in the file for a modern[^1] MacOS kernel to agree to load and execute it. We’ll write some Rust code to generate the bytes that make up a Mach-O file, building up from machine code until we have an executable file.
+The Mach-O file format is the binary file format of executables on MacOS and iOS. The aim of this post is not just to explain the general structure of a Mach-O file, but also to detail which specific components are required to be present in the file for a modern[^1] MacOS kernel to agree to load and execute it. Since existing compilers and linkers targetting MacOS can create Mach-O files just fine, this information is useful if you are creating your own compiler or linker. We’ll write some Rust code to generate the bytes that make up a Mach-O file, building up from machine code until we have an executable file.
 
 [^1]: MacOS Sonoma 14.4 running on an M1 MacBook Pro
 
@@ -54,7 +54,7 @@ Synthesising some information from the above sources, a Mach-O file consists of:
 - some 'Load Commands' that define the structure of the data in the file and how it is to be loaded into memory
 - data that is referenced by the Load Commands
 
-<table class="macho-table" style="margin-inline: auto; width: 25rem;">
+<table class="macho-table" style="margin-inline: auto;">
   <tr>
     <td style="background-color: #ffb276;">file header</td>
   </tr>
@@ -617,7 +617,8 @@ $ echo $?
 ```
 The final file consists of:
 
-<table class="macho-table">
+<div style="overflow-x: auto;">
+<table class="macho-table rounded-xl">
   <tr>
     <td rowspan="10" style="background-color: #ff7340; vertical-align: middle; text-align: center;">__TEXT segment</td>
     <td colspan="3" style="background-color: #ffb276;">file header</td>
@@ -656,10 +657,13 @@ The final file consists of:
     <td colspan="3" style="background-color: #ffb276;">code signature</td>
   </tr>
 </table>
+</div>
 
 This is the simplest valid Mach-O executable that I could construct.
 
 #### Other Resources on Mach-O Files
+
+I tried to justify every part in the executable we built using information from Apple directly, but relied on the wealth of resources out there for building up my initial understanding of Mach-O files. Here are those resources.
 
 ##### Mach-O General
 
@@ -691,7 +695,7 @@ This is the simplest valid Mach-O executable that I could construct.
 - https://github.com/Homebrew/brew/issues/9082
 - https://github.com/nodejs/node/issues/40827
 
-##### Assembly and syscalls
+##### Apple Silicon Assembly and Darwin/XNU Syscalls
 - https://github.com/jdshaffer/Apple-Silicon-ASM-Examples
 - https://www.reddit.com/r/Assembly_language/comments/1ijt505/executables_smaller_than_33kb_possible_on_macos/
 - https://stackoverflow.com/a/56993314 - arm64 syscalls
@@ -705,4 +709,25 @@ This is the simplest valid Mach-O executable that I could construct.
 - https://gist.github.com/mszoek/2916926a57011bc369e0431561f3d5f7 - ravynOS macho loading
 - https://github.com/bluewhalesystems/sold/blob/59577929295b33e80da9e901f09543b4c4446c11/macho/output-chunks.cc
 - https://github.com/Binject/debug/blob/master/macho/write.go
+
+<style type="text/css" rel="stylesheet">
+.macho-table {
+	margin-block: 1em;
+}
+
+.macho-table td {
+	padding: 5px 10px;
+	background-color: #ffe2cb;
+	border: 1px solid black;
+}
+
+.dark .macho-table {
+	color: black;
+}
+
+/* Have only inner borders in dark mode */
+.dark .macho-table {
+    border-style: hidden;
+}
+</style>
 

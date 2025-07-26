@@ -134,7 +134,7 @@ hr {
 		font-size: 18px;
 	}
 	main {
-		padding: 1em;
+		padding: 0em;
 	}
 }
 
@@ -175,25 +175,6 @@ html.dark {
 	--black: white;
 }
 
-.dark a {
-	/* color: rgba(var(--accent-dark)); */
-}
-
 .dark .nav-links a {
   color: #fff;
-}
-
-.macho-table {
-	border: 1px solid;
-	margin-block: 1em;
-}
-
-.macho-table td {
-	border: 1px solid;
-	padding: 5px 10px;
-	background-color: #ffe2cb;
-}
-
-.dark .macho-table {
-	color: black;
 }

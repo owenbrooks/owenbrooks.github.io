@@ -9,6 +9,12 @@ import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
 <html lang="en">
 	<head>
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<link
+		    rel="alternate"
+		    type="application/rss+xml"
+		    title="Owen Brooks' Blog"
+		    href={new URL("rss.xml", Astro.site)}
+		/>
 	</head>
 	<body class="dark:bg-zinc-900">
 		<Header />

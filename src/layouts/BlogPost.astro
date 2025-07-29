@@ -13,6 +13,12 @@ const { title, description, pubDate, updatedDate } = Astro.props;
 
 <html lang="en">
 	<head>
+		<link
+		    rel="alternate"
+		    type="application/rss+xml"
+		    title="Owen Brooks' Blog"
+		    href={new URL("rss.xml", Astro.site)}
+		/>
 		<BaseHead title={title} description={description} />
 		<style>
 			main {

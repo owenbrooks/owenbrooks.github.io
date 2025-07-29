@@ -186,7 +186,7 @@ let mut text_section_header = Section64 {
     align: 0x2,
     reloff: 0x0,
     nreloc: 0x0,
-    flags: 0x80000400,
+    flags: 0x0,
     reserved1: 0x0,
     reserved2: 0x0,
     reserved3: 0x0,
@@ -256,7 +256,7 @@ Killed: 9
 Oh. I guess it wasn't going to be that easy.
 
 ## Secrets of mach_loader.c 
-To figure out the rest of the requirements we will need to dive into the source code that Apple provides for the XNU kernel, specifically the `parse_machfile()` function in [`mach_loader.c`](https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/bsd/kern/mach_loader.c#L140).
+To figure out the rest of the requirements we will need to dive into the source code that Apple provides for the XNU kernel, specifically the `parse_machfile()` function in [`mach_loader.c`](https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/bsd/kern/mach_loader.c#L140). To avoid being Killed, we need to avoid any code path that will end up returning `LOAD_FAILURE` or `LOAD_BADMACHO`.
 
 Here are the relevant excerpts:
 
@@ -351,7 +351,7 @@ if (enforce_hard_pagezero &&
     }
 }
 ```
-We need a 'PAGEZERO' segment.
+We need a 'PAGEZERO' segment. This segment defines an area of memory used to detect NULL pointer dereferences.
 
 ```c
 if (scp->initprot == 0 && scp->maxprot == 0 && scp->vmaddr == 0) {
@@ -410,7 +410,7 @@ We can fix our flags as so:
 header.flags = MH_PIE | MH_DYLDLINK;
 ```
 
-Add `LC_LOAD_DYLINKER`:
+And add `LC_LOAD_DYLINKER`:
 ```rust
 let dylinker_name = "/usr/lib/dyld".to_string();
 let padded_cmd_len = align(
@@ -432,7 +432,9 @@ header.sizeofcmds += dylinker_lc.cmdsize;
 ```
 
 ## Sign here please - Adding a code signature
-The code signature is another story. All binaries are required to be signed before they are run. For programs that will be distributed, this would be performed using an official Apple Developer account, but there is a type of signature called an 'ad-hoc' signature that allows a program to run on your computer only. You can read [llios/macho_parser](https://github.com/qyang-nj/llios/blob/main/macho_parser/docs/LC_CODE_SIGNATURE.md) for details on the format of code signatures, as we will delegate code signing to the [rcodesign](https://gregoryszorc.com/docs/apple-codesign/0.17.0/apple_codesign_getting_started.html#installing) utility that has re-implemented Apple's code signing process. It doesn't do all the work for us: it can only replace an existing signature, so we must write our own empty one first and place it in the `__LINKEDIT` segment.
+The code signature is another story. All binaries are required to be signed before they are run. For programs that will be distributed, this would be performed using an official Apple Developer account, but there is a type of signature called an 'ad-hoc' signature[^2] that allows a program to run on your computer only, but doesn't require any Apple account. You can read [llios/macho_parser](https://github.com/qyang-nj/llios/blob/main/macho_parser/docs/LC_CODE_SIGNATURE.md) for details on the format of code signatures, as we will delegate code signing to the [rcodesign](https://gregoryszorc.com/docs/apple-codesign/0.17.0/apple_codesign_getting_started.html#installing) utility that has re-implemented Apple's code signing process. It doesn't do all the work for us: it can only replace an existing signature, so we must write our own empty one first and place it in the `__LINKEDIT` segment.
+
+[^2]: https://developer.apple.com/documentation/security/seccodesignatureflags/adhoc
 
 First we create the `__LINKEDIT` segment:
 ```rust
@@ -694,6 +696,7 @@ I tried to justify every part in the executable we built using information from 
 - https://gregoryszorc.com/docs/apple-codesign/0.17.0/apple_codesign_gatekeeper.html
 - https://github.com/Homebrew/brew/issues/9082
 - https://github.com/nodejs/node/issues/40827
+- https://gist.github.com/rsms/929c9c2fec231f0cf843a1a746a416f5 - Hurdles of macOS distribution
 
 ##### Apple Silicon Assembly and Darwin/XNU Syscalls
 - https://github.com/jdshaffer/Apple-Silicon-ASM-Examples

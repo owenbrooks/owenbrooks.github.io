@@ -1,10 +1,10 @@
 ---
 title: 'Constructing a Valid Mach-O Executable'
-pubDate: 'Jul 23 2025'
+pubDate: 'Aug 03 2025'
 description: 'What is the simplest executable we can make run on MacOS?'
 ---
 
-The Mach-O file format is the binary file format of executables on MacOS and iOS. The aim of this post is not just to explain the general structure of a Mach-O file, but also to detail which specific components are required to be present in the file for a modern[^1] MacOS kernel to agree to load and execute it. Since existing compilers and linkers targetting MacOS can create Mach-O files just fine, this information is useful if you are creating your own compiler or linker. We’ll write some Rust code to generate the bytes that make up a Mach-O file, building up from machine code until we have an executable file.
+The Mach-O file format is the binary file format of executables on MacOS and iOS. The aim of this post is not just to explain the general structure of a Mach-O file, but also to detail which specific components are required to be present in the file for a modern[^1] MacOS kernel to agree to load and execute it. Since existing compilers and linkers targeting MacOS can create Mach-O files just fine, this information is useful if you are creating your own compiler or linker. We’ll write some Rust code to generate the bytes that make up a Mach-O file, building up from machine code until we have an executable file.
 
 [^1]: MacOS Sonoma 14.4 running on an M1 MacBook Pro
 
@@ -254,7 +254,7 @@ Killed: 9
 ```
 Oh. I guess it wasn't going to be that easy.
 
-## Secrets of mach_loader.c 
+## Secrets of `mach_loader.c`
 To figure out the rest of the requirements we will need to dive into the source code that Apple provides for the XNU kernel, specifically the `parse_machfile()` function in [`mach_loader.c`](https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/bsd/kern/mach_loader.c#L140). To avoid being Killed, we need to avoid any code path that will end up returning `LOAD_FAILURE` or `LOAD_BADMACHO`.
 
 Here are the relevant excerpts:
@@ -273,7 +273,7 @@ if (header->flags & MH_DYLDLINK) {
     return LOAD_FAILURE;
 }
 ```
-This tells us we must set the DYLD_LINK and MH_PIE flags in the file header.
+This tells us we must set the `MH_DYLDLINK` and `MH_PIE` flags in the file header.
 
 ```c
 case LC_LOAD_DYLINKER:
@@ -290,7 +290,7 @@ if (ret == LOAD_SUCCESS) {
     }
 }
 ```
-We need a LOAD_DYLINKER load command.
+We need an `LC_LOAD_DYLINKER` load command.
 
 ```c
 if (ret == LOAD_SUCCESS && scp64->fileoff == 0 && scp64->filesize > 0) {
@@ -304,7 +304,7 @@ if (ret == LOAD_SUCCESS && scp64->fileoff == 0 && scp64->filesize > 0) {
     found_header_segment = TRUE;
 }
 ```
-The first segment we load must have initprot set to READ and EXECUTE.
+The first segment we load must have `initprot` set to allow both `READ` and `EXECUTE`.
 
 ```c
 if ((file_offset & PAGE_MASK_64) != 0 ||
@@ -326,7 +326,7 @@ case LC_CODE_SIGNATURE:
         got_code_signatures = TRUE;
     ...
 ```
-We need a CODE_SIGNATURE load command.
+We need an `LC_CODE_SIGNATURE` load command.
 
 ```c
 if (result->thread_count == 0) {
@@ -339,18 +339,18 @@ static load_return_t load_main(... )
     result->thread_count++;
 ...
 ```
-We need LC_MAIN or LC_UNIXTHREAD. We choose LC_MAIN over LC_UNIXTHREAD as it is simpler.
+We need `LC_MAIN` or `LC_UNIXTHREAD`. We choose `LC_MAIN` over `LC_UNIXTHREAD` as it is simpler.
 
 ```c
 if (enforce_hard_pagezero &&
-    /* 64 bit ARM binary must have "hard page zero" of 4GB to cover the lower 32 bit address space */
+    /* 64 bit ARM binary must have "hard page zero" of 4GiB to cover the lower 32 bit address space */
     (vm_map_has_hard_pagezero(map, 0x100000000) == FALSE)) {
 ...
         return LOAD_BADMACHO;
     }
 }
 ```
-We need a 'PAGEZERO' segment. This segment defines an area of memory used to detect NULL pointer dereferences.
+We need a `__PAGEZERO` segment. This segment defines an area of memory used to detect NULL pointer dereferences.
 
 ```c
 if (scp->initprot == 0 && scp->maxprot == 0 && scp->vmaddr == 0) {
@@ -361,10 +361,10 @@ if (scp->initprot == 0 && scp->maxprot == 0 && scp->vmaddr == 0) {
     }
 }
 ```
-The PAGEZERO segment must have `initprot` and `maxprot` set to `VM_PROT_NONE` (0).
+The `__PAGEZERO` segment must have `initprot` and `maxprot` set to `VM_PROT_NONE` (0).
 
 Summarising, we need to add:
-- `__PAGEZERO` segment of size 4GB, starting at vmaddr of 0x0, with initprot and maxprot set to 0
+- `__PAGEZERO` segment of size 4GiB, starting at vmaddr of 0x0, with initprot and maxprot set to 0
 - `LC_MAIN` load command
 - `LC_LOAD_DYLINKER` load command
 - `LC_CODE_SIGNATURE` load command
@@ -390,7 +390,7 @@ header.ncmds += 1;
 header.sizeofcmds += pagezero_seg_lc.cmdsize;
 ```
 
-Since `__PAGEZERO` will take up the first 4GB (0x100000000 bytes) of memory, we need to set the `__TEXT` segment to load after that:
+Since `__PAGEZERO` will take up the first 4GiB (0x100000000 bytes) of memory, we need to set the `__TEXT` segment to load after that:
 
 ```rust
 text_segment_lc.vmaddr = pagezero_seg_lc.vmsize;
@@ -402,7 +402,7 @@ let mut main_lc = EntryPointCommand {
     cmd: LC_MAIN,
     cmdsize: std::mem::size_of::<EntryPointCommand>() as u32,
     entryoff: 0,  // updated later
-    stacksize: 0, // if we put zero, the kernel fills it with a default value
+    stacksize: 0, // if set to zero, the kernel fills it with a default value
 };
 bytes_reserved += std::mem::size_of::<EntryPointCommand>();
 header.ncmds += 1;
@@ -436,7 +436,7 @@ header.sizeofcmds += dylinker_lc.cmdsize;
 ```
 
 ## Sign here please - Adding a code signature
-The code signature is another story. All binaries are required to be signed before they are run. For programs that will be distributed, this would be performed using an official Apple Developer account, but there is a type of signature called an 'ad-hoc' signature[^2] that allows a program to run on your computer only, but doesn't require any Apple account. You can read [llios/macho_parser](https://github.com/qyang-nj/llios/blob/main/macho_parser/docs/LC_CODE_SIGNATURE.md) for details on the format of code signatures, as we will delegate code signing to the [rcodesign](https://gregoryszorc.com/docs/apple-codesign/0.17.0/apple_codesign_getting_started.html#installing) utility that has re-implemented Apple's code signing process. It doesn't do all the work for us: it can only replace an existing signature, so we must write our own empty one first and place it in the `__LINKEDIT` segment.
+The code signature is another story. All binaries are required to be signed before they can be run. For programs that will be distributed, this would be performed using an official Apple Developer account, but there is a type of signature called an 'ad-hoc' signature[^2] that allows a program to run on your computer only, but doesn't require any Apple account. You can read [llios/macho_parser](https://github.com/qyang-nj/llios/blob/main/macho_parser/docs/LC_CODE_SIGNATURE.md) for details on the format of code signatures, as we will delegate code signing to the [rcodesign](https://gregoryszorc.com/docs/apple-codesign/0.17.0/apple_codesign_getting_started.html#installing) utility that has re-implemented Apple's code signing process. It doesn't do all the work for us: it can only replace an existing signature, so we must write our own empty one first and place it in the `__LINKEDIT` segment.
 
 [^2]: https://developer.apple.com/documentation/security/seccodesignatureflags/adhoc
 
@@ -668,7 +668,7 @@ The final file consists of:
 </table>
 </div>
 
-This is the simplest valid Mach-O executable that I could construct.
+This is the simplest valid Mach-O executable that I could construct. It contains 8 load commands, and weighs in at around 22kiB. Notably, we use raw syscalls, avoiding the need to define symbols or dynamically link to any libraries, so our program is somewhat susceptible to breaking with MacOS updates. Still, it serves as a reference to understand the minimum work needed to build an executable for MacOS.
 
 #### Other Resources on Mach-O Files
 
@@ -679,7 +679,7 @@ I tried to justify every part in the executable we built using information from 
 - https://alexdremov.me/mystery-of-mach-o-object-file-builders/
 - https://web.archive.org/web/20140904004108/https://developer.apple.com/library/mac/documentation/developertools/conceptual/MachORuntime/Reference/reference.html
 - https://www.reinterpretcast.com/hello-world-mach-o
-- https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/MachOTopics/0-Introduction/introduction.html - Unforunately a bit old and therefore x86_64-centric
+- https://developer.apple.com/library/archive/documentation/DeveloperTools/Conceptual/MachOTopics/0-Introduction/introduction.html - Unfortunately a bit old and therefore x86_64-centric
 - https://developer.apple.com/library/archive/documentation/Performance/Conceptual/CodeFootprint/Articles/MachOOverview.html
 - https://lief.re/doc/latest/tutorials/11_macho_modification.html
 - https://www.objc.io/issues/6-build-tools/mach-o-executables/

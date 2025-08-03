@@ -157,13 +157,12 @@ We'll fill ours in like this:
 ```rust
 let text_section_data: [u32; 3] = [0xd2800800, 0xd2800030, 0xd4001001];
 
-let text_segment_vmaddr = 0x100000000;
 let mut text_segment_lc = SegmentCommand64 {
     cmd: LC_SEGMENT_64,
     cmdsize: std::mem::size_of::<SegmentCommand64>() as u32
         + std::mem::size_of::<Section64>() as u32,
     segname: *b"__TEXT\0\0\0\0\0\0\0\0\0\0",
-    vmaddr: text_segment_vmaddr,
+    vmaddr: 0x0,   // filled in later
     vmsize: 0x0,   // filled in later
     fileoff: 0x0,  // __TEXT segment begins at the very start of the file
     filesize: 0x0, // filled in later
@@ -391,16 +390,21 @@ header.ncmds += 1;
 header.sizeofcmds += pagezero_seg_lc.cmdsize;
 ```
 
-For `LC_MAIN`, we just need to make sure we compute the correct file offset of the `__text` section data:
+Since `__PAGEZERO` will take up the first 4GB (0x100000000 bytes) of memory, we need to set the `__TEXT` segment to load after that:
+
 ```rust
-bytes_reserved += std::mem::size_of::<EntryPointCommand>();
-text_section_header.addr = (bytes_reserved as u64 + text_segment_vmaddr) as u64;
+text_segment_lc.vmaddr = pagezero_seg_lc.vmsize;
+```
+
+We can add `LC_MAIN` as follows:
+```rust
 let mut main_lc = EntryPointCommand {
     cmd: LC_MAIN,
     cmdsize: std::mem::size_of::<EntryPointCommand>() as u32,
-    entryoff: 0,  // Updated later
+    entryoff: 0,  // updated later
     stacksize: 0, // if we put zero, the kernel fills it with a default value
 };
+bytes_reserved += std::mem::size_of::<EntryPointCommand>();
 header.ncmds += 1;
 header.sizeofcmds += main_lc.cmdsize;
 ```
@@ -436,7 +440,10 @@ The code signature is another story. All binaries are required to be signed befo
 
 [^2]: https://developer.apple.com/documentation/security/seccodesignatureflags/adhoc
 
+<br/>
+
 First we create the `__LINKEDIT` segment:
+
 ```rust
 let mut linkedit_seg_lc = SegmentCommand64 {
     cmd: LC_SEGMENT_64,
@@ -444,8 +451,8 @@ let mut linkedit_seg_lc = SegmentCommand64 {
     segname: *b"__LINKEDIT\0\0\0\0\0\0",
     vmaddr: text_segment_lc.vmaddr + text_segment_lc.vmsize,
     vmsize: 0x4000,
-    fileoff: 0,  // Updated later
-    filesize: 0, // Updated later
+    fileoff: 0,  // updated later
+    filesize: 0, // updated later
     maxprot: 0x0,
     initprot: 0x0,
     nsects: 0,
@@ -461,8 +468,8 @@ Then we create a load command for the code signature:
 let mut codesig_lc = LinkeditDataCommand {
     cmd: LC_CODE_SIGNATURE,
     cmdsize: std::mem::size_of::<LinkeditDataCommand>() as u32,
-    dataoff: 0,  // Updated later
-    datasize: 0, // Updated later
+    dataoff: 0,  // updated later
+    datasize: 0, // updated later
 };
 header.ncmds += 1;
 header.sizeofcmds += codesig_lc.cmdsize;
